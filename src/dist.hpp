@@ -56,8 +56,18 @@ inline void dist_neon(unsigned char const* a, unsigned char const* b, uint32_t& 
   auto a16_ = vld1q_u8(a + 16);
   auto b16_ = vld1q_u8(b + 16);
   auto ab_ = vabdq_u8(a16_, b16_);
-  sum += ab[0] + ab[1] + ab[2] + ab[3] + ab[4] + ab[5] + ab[6] + ab[7] + ab[8] + ab[9] + ab[10] + ab[11] + ab[12] + ab[13] + ab[14] + ab[15];
-  sum += ab_[0] + ab_[1] + ab_[2] + ab_[3] + ab_[4] + ab_[5] + ab_[6] + ab_[7] + ab_[8] + ab_[9] + ab_[10] + ab_[11] + ab_[12] + ab_[13] + ab_[14] + ab_[15];
+
+  uint16x8_t res16 = vpaddlq_u8(ab);
+  uint32x4_t res32 = vpaddlq_u16(res16);
+  uint64x2_t res64 = vpaddlq_u32(res32);
+  sum += vgetq_lane_u64(res64, 0) + vgetq_lane_u64(res64, 1);
+
+  res16 = vpaddlq_u8(ab_);
+  res32 = vpaddlq_u16(res16);
+  res64 = vpaddlq_u32(res32);
+  sum += vgetq_lane_u64(res64, 0) + vgetq_lane_u64(res64, 1);
+  //sum += ab[0] + ab[1] + ab[2] + ab[3] + ab[4] + ab[5] + ab[6] + ab[7] + ab[8] + ab[9] + ab[10] + ab[11] + ab[12] + ab[13] + ab[14] + ab[15];
+  //sum += ab_[0] + ab_[1] + ab_[2] + ab_[3] + ab_[4] + ab_[5] + ab_[6] + ab_[7] + ab_[8] + ab_[9] + ab_[10] + ab_[11] + ab_[12] + ab_[13] + ab_[14] + ab_[15];
 #endif
 }
 #endif
