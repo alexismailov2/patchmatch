@@ -3,7 +3,7 @@
 #include <opencv2/core/mat.hpp>
 
 #define SSE  0
-#define NEON 0
+#define NEON 1
 
 #define RGB24 0
 
@@ -53,11 +53,11 @@ inline void dist_neon(unsigned char const* a, unsigned char const* b, uint32_t& 
   auto a16 = vld1q_u8(a);
   auto b16 = vld1q_u8(b);
   auto ab = vabdq_u8(a16, b16);
+  auto a16_ = vld1q_u8(a + 16);
+  auto b16_ = vld1q_u8(b + 16);
+  auto ab_ = vabdq_u8(a16_, b16_);
   sum += ab[0] + ab[1] + ab[2] + ab[3] + ab[4] + ab[5] + ab[6] + ab[7] + ab[8] + ab[9] + ab[10] + ab[11] + ab[12] + ab[13] + ab[14] + ab[15];
-  a16 = vld1q_u8(a);
-  b16 = vld1q_u8(b);
-  ab = vabdq_u8(a16, b16);
-  sum += ab[0] + ab[1] + ab[2] + ab[3] + ab[4] + ab[5] + ab[6] + ab[7] + ab[8] + ab[9] + ab[10] + ab[11] + ab[12] + ab[13] + ab[14] + ab[15];
+  sum += ab_[0] + ab_[1] + ab_[2] + ab_[3] + ab_[4] + ab_[5] + ab_[6] + ab_[7] + ab_[8] + ab_[9] + ab_[10] + ab_[11] + ab_[12] + ab_[13] + ab_[14] + ab_[15];
 #endif
 }
 #endif

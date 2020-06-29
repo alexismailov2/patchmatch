@@ -3,7 +3,8 @@ project(patchmatch)
 
 find_package(OpenCV REQUIRED)
 
-set(CMAKE_CXX_FLAGS "-O6 -std=c++11 -Wall -ffast-math -msse2 -msse")
+set(CMAKE_CXX_FLAGS "-O6 -Wall -ffast-math")
+#set(CMAKE_CXX_FLAGS "-O6 -Wall -fast-math -msse2 -msse")
 
 set(patchmatch_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
