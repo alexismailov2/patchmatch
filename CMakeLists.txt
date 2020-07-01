@@ -1,16 +1,30 @@
 cmake_minimum_required(VERSION 2.8)
 project(patchmatch)
 
-find_package(OpenCV REQUIRED)
+set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_CXX_FLAGS "-O6 -Wall -ffast-math")
-#set(CMAKE_CXX_FLAGS "-O6 -Wall -fast-math -msse2 -msse")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ffast-math")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fast-math -msse2 -msse")
 
 set(patchmatch_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE patchmatch_PUBLIC_INCLUDES ${patchmatch_PUBLIC_INCLUDE_DIR}/patchmatch/*.hpp)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+   add_definitions(
+           -DNEON=1
+           -DSSE=0
+           -DRGB24=0)
+else()
+   find_package(OpenCV REQUIRED)
+   add_definitions(
+           -DNEON=0
+           -DSSE=1
+           -DRGB24=0)
+endif()
+
 include_directories(
+   ${LIBRARY_INSTALL_DESTINATION}/include
    include)
 
 file(GLOB patchmatch_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)

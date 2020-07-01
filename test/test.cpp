@@ -37,13 +37,24 @@ void draw_circle(int event, int x, int y, int flags, void* userdata)
 #define SIMPLE_MODE 1
 int main(int argc, char* argv[])
 {
-  cv::Mat input = cv::imread("data/patch-5.jpg", cv::IMREAD_COLOR);
+  cv::Mat input = cv::imread("data/IMG_9454.jpg", cv::IMREAD_COLOR);
   cv::cvtColor(input, input, cv::COLOR_BGR2BGRA);
 #if SIMPLE_MODE
-  cv::Mat mask = cv::imread("data/patch-5_mask.png", cv::IMREAD_GRAYSCALE);
-  cv::Mat completedImage = imageComplete(input, mask, [](cv::Mat const& progress){
-    showImage("Progress", progress);
-  });
+  cv::Mat mask = cv::imread("data/IMG_9464.png", cv::IMREAD_COLOR);
+  cv::cvtColor(mask, mask, cv::COLOR_BGR2GRAY);
+  cv::threshold(mask, mask, 1, 255, cv::THRESH_BINARY);
+  showImage("Mask", mask);
+  auto config = pm::PatchMatch::Config();
+  config.Original(input)
+        .Mask(mask)
+        .Scales(4)
+        .Steps(5)
+        .ProgressCb([](cv::Mat const& completedImage, pm::PatchMatch::Progress const& progress) -> bool {
+           showImage("Progress", completedImage);
+           std::cout << "Percent progress: " << progress.getPercent() << "%" << std::endl;
+           return true;
+        });
+  cv::Mat completedImage = pm::PatchMatch(config).ImageComplete();
   cv::imwrite("patch-5_out.png", completedImage);
 #else
    cv::Mat red = cv::Mat::zeros(input.rows, input.cols, CV_8UC3);
