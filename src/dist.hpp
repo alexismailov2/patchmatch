@@ -2,10 +2,17 @@
 
 #include <opencv2/core/mat.hpp>
 
-#define SSE  0
-#define NEON 1
+#ifndef SSE
+#define SSE  1
+#endif
 
+#ifndef NEON
+#define NEON 0
+#endif
+
+#ifndef RGB24
 #define RGB24 0
+#endif
 
 #if SSE
 #include <emmintrin.h>
@@ -25,11 +32,11 @@ inline void dist_sse(unsigned char const* a, unsigned char const* b, __m128i& ab
 #else
    auto a16 = _mm_loadu_si128((__m128i*)a);
    auto b16 = _mm_loadu_si128((__m128i*)b);
-   auto ab = _mm_sad_epu8(*(__m128i*)a, *(__m128i*)b);
+   auto ab = _mm_sad_epu8(a16, b16);
    ab16 = _mm_add_epi16(ab16, ab);
    auto a16_ = _mm_loadu_si128((__m128i*)(a + 16));
    auto b16_ = _mm_loadu_si128((__m128i*)(b + 16));
-   auto ab_ = _mm_sad_epu8(*(__m128i*)(a + 16), *(__m128i*)(b + 16));
+   auto ab_ = _mm_sad_epu8(a16_, b16_);
    ab16 = _mm_add_epi16(ab16, ab_);
 #endif
 }
