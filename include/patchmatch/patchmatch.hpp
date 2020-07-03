@@ -49,7 +49,7 @@ namespace pm {
              * @param original original image.
              * @return self.
              */
-            auto Original(cv::Mat original, uint8_t scales = 0) -> Config &;
+            auto Original(cv::Mat original) -> Config &;
 
             /**
              * Set mask for image(should be grayscale CV_8UC1).
@@ -59,18 +59,18 @@ namespace pm {
             auto Mask(cv::Mat mask) -> Config &;
 
             /**
-             * Set steps which will be used for each scale.
-             * @param steps steps for each scale.
+             * Set steps which will be used during image completion algorithm for each scale.
+             * @param imageCompletionSteps image completion steps for each scale.
              * @return self.
              */
-            auto Steps(uint8_t steps) -> Config &;
+            auto ImageCompletionSteps(uint8_t imageCompletionSteps) -> Config &;
 
             /**
-             * Set scales count(power of two divisions from original size).
-             * @param scales power of two divisions from original size.
+             * Set steps which will be used during patch matching algorithm for each scale.
+             * @param patchMatchingSteps patch matching steps.
              * @return self.
              */
-            auto Scales(uint8_t scales) -> Config &;
+            auto PatchMatchingSteps(uint8_t patchMatchingSteps) -> Config &;
 
             /**
              * Set proggess callback.
@@ -82,8 +82,8 @@ namespace pm {
         private:
             cv::Mat _original{};
             cv::Mat _mask{};
-            uint8_t _steps{5};
-            uint8_t _scales{};
+            uint8_t _patchMatchingSteps{5};
+            uint8_t _imageCompletionSteps{5};
             uint8_t _possibleScales{};
             Progress::Cb _progressCb{[](cv::Mat const &, pm::PatchMatch::Progress const &) -> bool { return true; }};
             bool _hasProgressCb{};

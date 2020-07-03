@@ -20,7 +20,7 @@ void draw_circle(int event, int x, int y, int flags, void* userdata)
 
       case cv::EVENT_MOUSEMOVE:
          if (drawing) {
-            cv::circle(mask, cv::Point{x, y}, 10, cv::Scalar{255, 255, 255}, -1);
+            cv::circle(mask, cv::Point{x, y}, 100, cv::Scalar{255, 255, 255}, -1);
          }
          break;
 
@@ -34,7 +34,7 @@ void draw_circle(int event, int x, int y, int flags, void* userdata)
    }
 }
 
-#define SIMPLE_MODE 1
+#define SIMPLE_MODE 0
 int main(int argc, char* argv[])
 {
   cv::Mat input = cv::imread("data/IMG_9454.jpg", cv::IMREAD_COLOR);
@@ -47,8 +47,8 @@ int main(int argc, char* argv[])
   auto config = pm::PatchMatch::Config();
   config.Original(input)
         .Mask(mask)
-        .Scales(4)
-        .Steps(5)
+        .ImageCompletionSteps(10)
+        .PatchMatchingSteps(20)
         .ProgressCb([](cv::Mat const& completedImage, pm::PatchMatch::Progress const& progress) -> bool {
            showImage("Progress", completedImage);
            std::cout << "Percent progress: " << progress.getPercent() << "%" << std::endl;
@@ -57,26 +57,37 @@ int main(int argc, char* argv[])
   cv::Mat completedImage = pm::PatchMatch(config).ImageComplete();
   cv::imwrite("patch-5_out.png", completedImage);
 #else
-   cv::Mat red = cv::Mat::zeros(input.rows, input.cols, CV_8UC3);
-   cv::Mat mask_ = cv::Mat::zeros(input.rows, input.cols, CV_8UC1);
+   cv::Mat red = cv::Mat::zeros(input.rows, input.cols, CV_8UC4);
+   cv::Mat mask = cv::Mat::zeros(input.rows, input.cols, CV_8UC1);
    cv::Mat render = cv::Mat::zeros(input.rows, input.cols, CV_8UC4);
 
    showImage("input", input);
-   cv::setMouseCallback("input", draw_circle, &mask_);
+   cv::setMouseCallback("input", draw_circle, &mask);
    while(true)
    {
-      red.setTo(cv::Scalar(0, 0, 255), mask_);
+      red.setTo(cv::Scalar(0, 0, 255), mask);
       cv::addWeighted(input, 1.0, red, 0.5, 0.0, render);
       showImage("input", render);
       cv::waitKey(1);
       if (run)
       {
          run = false;
-         cv::imwrite("patch-5_mask.png", mask_);
-         cv::Mat completedImage = imageComplete(input, mask_, [](cv::Mat const& progress){
-           showImage("Progress", progress);
-         });
-         showImage("input", input);
+         cv::imwrite("patch-5_mask.png", mask);
+         auto config = pm::PatchMatch::Config();
+         config.Original(input)
+               .Mask(mask)
+               .ImageCompletionSteps(10)
+               .PatchMatchingSteps(20)
+               .ProgressCb([&](cv::Mat const& completedImage, pm::PatchMatch::Progress const& progress) -> bool {
+                 cv::Mat origSize;
+                 cv::resize(completedImage, origSize, cv::Size{input.cols, input.rows});
+                 cv::rectangle(origSize, cv::Rect(0, 0, origSize.cols * progress.getPercent() / 100.0f, 50), cv::Scalar{0, 255, 0}, -1);
+                 showImage("Progress", origSize);
+                 std::cout << "Percent progress: " << progress.getPercent() << "%" << std::endl;
+                 return true;
+               });
+         cv::Mat completedImage = pm::PatchMatch(config).ImageComplete();
+         showImage("Progress", completedImage);
       }
    }
 #endif

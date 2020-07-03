@@ -78,6 +78,33 @@ void improve_guess(cv::Mat const& a, cv::Mat const& b, int ax, int ay, int& xbes
 }
 
 /**
+ * Random initialization.
+ * @param img image.
+ * @param mask mask.
+ */
+void randomnInit(cv::Mat& img, cv::Mat const& mask)
+{
+  TAKEN_TIME_US();
+  // TODO: Should be used this one instead
+  //cv::Mat random;
+  //cv::randu(random, cv::Scalar(0, 0, 0), Scalar(255, 255, 255));
+
+  for (auto y = 0; y < img.rows; ++y)
+  {
+    for (auto x = 0; x < img.cols; ++x)
+    {
+      if (mask.at<uchar>(y, x) != 0)
+      {
+        img.at<cv::Vec3b>(y, x)[0] = rand() % 256;
+        img.at<cv::Vec3b>(y, x)[1] = rand() % 256;
+        img.at<cv::Vec3b>(y, x)[2] = rand() % 256;
+        img.at<cv::Vec3b>(y, x)[3] = 255;
+      }
+    }
+  }
+}
+
+/**
  * Match image a to image b.
  * @param a image
  * @param b another image
@@ -96,26 +123,19 @@ void patchmatch(cv::Mat const& a, cv::Mat const& b, cv::Mat& ann_, cv::Mat& annd
   int beh = b.rows - patch_w + 1;
 
   // Initialization
-  for (int ay = 0; ay < aeh; ay++)
+  for (auto ay = 0; ay < aeh; ay++)
   {
-    for (int ax = 0; ax < aew; ax++)
+    for (auto ax = 0; ax < aew; ax++)
     {
-      int bx, by;
+      int32_t bx;
+      int32_t by;
       bool valid = false;
       while (!valid)
       {
         bx = rand() % bew;
         by = rand() % beh;
-        int mask_pixel = (int) dilated_mask.at<uchar>(by, bx);
-        // should find patches outside the hole
-        if (mask_pixel == 255)
-        {
-          valid = false;
-        }
-        else
-        {
-          valid = true;
-        }
+        auto const mask_pixel = (int) dilated_mask.at<uchar>(by, bx);
+        valid = (mask_pixel == 255) ? false : true;
       }
       ann_.at<int32_t>(ay, ax) = XY_TO_INT(bx, by);
       annd_.at<int32_t>(ay, ax) = dist(a, b, ax, ay, bx, by);
@@ -149,10 +169,10 @@ void patchmatch(cv::Mat const& a, cv::Mat const& b, cv::Mat& ann_, cv::Mat& annd
         for (int ax = xstart; ax != xend; ax += xchange)
         {
           /* Current (best) guess. */
-          int v = ann_.at<int32_t>(ay, ax);//(*ann)[ay][ax];
+          int v = ann_.at<int32_t>(ay, ax);
           int xbest = INT_TO_X(v);
           int ybest = INT_TO_Y(v);
-          int dbest = annd_.at<int32_t>(ay, ax);//(*annd)[ay][ax];
+          int dbest = annd_.at<int32_t>(ay, ax);
 
           {
             // Propagation: Improve current guess by trying instead correspondences from left and above (below and right on odd iterations).
@@ -224,33 +244,6 @@ void patchmatch(cv::Mat const& a, cv::Mat const& b, cv::Mat& ann_, cv::Mat& annd
     }
   }
 }
-
-/**
- * Random initialization.
- * @param img image.
- * @param mask mask.
- */
-void randomnInit(cv::Mat& img, cv::Mat const& mask)
-{
-  TAKEN_TIME_US();
-  // TODO: Should be used this one instead
-  //cv::Mat random;
-  //cv::randu(random, cv::Scalar(0, 0, 0), Scalar(255, 255, 255));
-
-  for (auto y = 0; y < img.rows; ++y)
-  {
-    for (auto x = 0; x < img.cols; ++x)
-    {
-      if (mask.at<uchar>(y, x) != 0)
-      {
-        img.at<cv::Vec3b>(y, x)[0] = rand() % 256;
-        img.at<cv::Vec3b>(y, x)[1] = rand() % 256;
-        img.at<cv::Vec3b>(y, x)[2] = rand() % 256;
-        img.at<cv::Vec3b>(y, x)[3] = 255;
-      }
-    }
-  }
-}
 } /// end namespace anonymous
 
 namespace pm {
@@ -263,12 +256,11 @@ auto PatchMatch::Progress::getTimeLeftInSeconds() const -> uint32_t
 
 auto PatchMatch::Progress::getPercent() const -> float
 {
-  auto const progress =
-    100.0f * (static_cast<float>(currentScale * countSteps + countSteps)) / ((countScales + 1) * countSteps);
+  auto const progress = 100.0f * static_cast<float>(currentScale) / countScales;
   return progress;
 }
 
-auto PatchMatch::Config::Original(cv::Mat original, uint8_t scales) -> Config&
+auto PatchMatch::Config::Original(cv::Mat original) -> Config&
 {
   _original = std::move(original);
   auto const calculatedPossibleScales = static_cast<uint8_t>(std::ceil(
@@ -278,7 +270,6 @@ auto PatchMatch::Config::Original(cv::Mat original, uint8_t scales) -> Config&
     throw std::runtime_error("Minimal image size should be greater or equal 2^5 = 32");
   }
   _possibleScales = calculatedPossibleScales - 5;
-  _scales = (scales > _possibleScales) ? _possibleScales : scales;
   return *this;
 }
 
@@ -288,15 +279,15 @@ auto PatchMatch::Config::Mask(cv::Mat mask) -> Config&
   return *this;
 }
 
-auto PatchMatch::Config::Steps(uint8_t steps) -> Config&
+auto PatchMatch::Config::ImageCompletionSteps(uint8_t imageCompletionSteps) -> Config&
 {
-  _steps = steps;
+  _imageCompletionSteps = imageCompletionSteps;
   return *this;
 }
 
-auto PatchMatch::Config::Scales(uint8_t scales) -> Config&
+auto PatchMatch::Config::PatchMatchingSteps(uint8_t patchMatchingSteps) -> Config&
 {
-  _scales = (scales > _possibleScales) ? _possibleScales : scales;
+  _patchMatchingSteps = patchMatchingSteps;
   return *this;
 }
 
@@ -320,7 +311,7 @@ auto PatchMatch::ImageComplete() -> cv::Mat
 auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
 {
   TAKEN_TIME_US();
-  Progress progress{config._steps, config._scales};
+  Progress progress{config._imageCompletionSteps, config._possibleScales};
   double scale = pow(2, -config._possibleScales);
   // Resize image to starting scale
   cv::Mat resize_img;
@@ -333,7 +324,7 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
 
   // go through all scale
   progress.currentScale = 0;
-  for (int logscale = -config._possibleScales; logscale <= -(config._possibleScales - config._scales); logscale++)
+  for (int logscale = -config._possibleScales; logscale <= 0; logscale++)
   {
     scale = pow(2, logscale);
     std::cout << "Scaling is " << scale << std::endl;
@@ -353,7 +344,7 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
     cv::Mat dilated_mask;
     dilate(resize_mask, dilated_mask, element);
 
-    for (uint8_t im_iter = 0; im_iter < config._steps; ++im_iter)
+    for (uint8_t im_iter = 0; im_iter < config._imageCompletionSteps; ++im_iter)
     {
       cv::Mat B = resize_img.clone();
       bitwise_and(resize_img, 0, B, resize_mask);
@@ -362,7 +353,7 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
       cv::Mat ann_ = cv::Mat::zeros(resize_img.rows, resize_img.cols, CV_32S);
       cv::Mat annd_ = cv::Mat::zeros(resize_img.rows, resize_img.cols, CV_32S);
 
-      patchmatch(resize_img, B, ann_, annd_, dilated_mask, config._steps);
+      patchmatch(resize_img, B, ann_, annd_, dilated_mask, config._patchMatchingSteps);
 
       double t3 = (double) cv::getTickCount();
       // create new image by letting each patch vote
@@ -441,13 +432,9 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
           break;
         }
       }
-      //progress.currentStep = im_iter;
-      //config._progressCb(resize_img, progress);
-      //progress.currentScale++;
     }
 
     if (logscale < 0)
-      //if (logscale < -(config._possibleScales - config._scales))
     {
       cv::Mat upscale_img;
       cv::resize(config._original, upscale_img, cv::Size(), 2 * scale, 2 * scale, cv::INTER_AREA);
@@ -462,9 +449,6 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
       upscale_img.copyTo(resize_img, inverted_mask);
     }
   }
-  //progress.currentStep = 0;
-  //progress.currentScale = logscale + config._possibleScales;
-  //config._progressCb(resize_img, progress);
   return resize_img.clone();
 }
 

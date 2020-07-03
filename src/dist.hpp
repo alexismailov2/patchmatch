@@ -10,116 +10,79 @@
 #define NEON 0
 #endif
 
-#ifndef RGB24
-#define RGB24 0
-#endif
-
 #if SSE
 #include <emmintrin.h>
 #include <immintrin.h>
 
-inline void dist_sse(unsigned char const* a, unsigned char const* b, __m128i& ab16)
+inline uint64_t dist_sse(unsigned char const* a, unsigned char const* b, size_t offset)
 {
-#if RGB24
-   auto a16 = _mm_loadu_si128((__m128i*)a);
-   auto b16 = _mm_loadu_si128((__m128i*)b);
-   auto ab = _mm_sad_epu8(a16, b16);
-   ab16 = _mm_add_epi16(ab16, ab);
-   auto a16_ = _mm_loadl_epi64((__m128i*)(a + 16));
-   auto b16_ = _mm_loadl_epi64((__m128i*)(b + 16));
-   auto ab_ = _mm_sad_epu8(a16_, b16_);
-   ab16 = _mm_add_epi16(ab16, ab_);
-#else
-   auto a16 = _mm_loadu_si128((__m128i*)a);
-   auto b16 = _mm_loadu_si128((__m128i*)b);
-   auto ab = _mm_sad_epu8(a16, b16);
-   ab16 = _mm_add_epi16(ab16, ab);
-   auto a16_ = _mm_loadu_si128((__m128i*)(a + 16));
-   auto b16_ = _mm_loadu_si128((__m128i*)(b + 16));
-   auto ab_ = _mm_sad_epu8(a16_, b16_);
-   ab16 = _mm_add_epi16(ab16, ab_);
-#endif
+  __m128i ab16{};
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16,  _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16,  _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  a += offset; b += offset;
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)a),  _mm_loadu_si128((__m128i*)b)));
+  ab16 = _mm_add_epi16(ab16, _mm_sad_epu8(_mm_loadu_si128((__m128i*)(a + 16)),_mm_loadu_si128((__m128i*)(b + 16))));
+  return ab16[0] + ab16[1];
 }
 #elif NEON
 # include <arm_neon.h>
 
-inline void dist_neon(unsigned char const* a, unsigned char const* b, uint32_t& sum)
+inline uint64_t dist_neon(unsigned char const* a, unsigned char const* b, size_t offset)
 {
-#if RGB24
-  auto a16 = vld1q_u8(a);
-  auto b16 = vld1q_u8(b);
-  auto ab = vabdq_u8(a16, b16);
-  sum += ab[0] + ab[1] + ab[2] + ab[3] + ab[4] + ab[5] + ab[6] + ab[7] + ab[8] + ab[9] + ab[10] + ab[11] + ab[12] + ab[13] + ab[14] + ab[15];
-  auto a16_ = vld1_u8(a + 16);
-  auto b16_ = vld1_u8(b + 16);
-  auto ab_ = vabd_u8(a16_, b16_);
-  uint8_t ab8[8];
-  vst1_u8(ab8, ab_);
-  sum += ab8[0] + ab8[1] + ab8[2] + ab8[3] + ab8[4] + ab8[5] + ab8[6] + ab8[7];
-#else
-  auto a16 = vld1q_u8(a);
-  auto b16 = vld1q_u8(b);
-  auto ab = vabdq_u8(a16, b16);
-  auto a16_ = vld1q_u8(a + 16);
-  auto b16_ = vld1q_u8(b + 16);
-  auto ab_ = vabdq_u8(a16_, b16_);
+  uint16x8_t abd16 = vpaddlq_u8(vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
+  a += offset; b += offset;
+  abd16 = vpadalq_u8(abd16, vabaq_u8(vabdq_u8(vld1q_u8(a), vld1q_u8(b)), vld1q_u8(a + 16), vld1q_u8(b + 16)));
 
-  uint16x8_t res16 = vpaddlq_u8(ab);
-  uint32x4_t res32 = vpaddlq_u16(res16);
-  uint64x2_t res64 = vpaddlq_u32(res32);
-  sum += vgetq_lane_u64(res64, 0) + vgetq_lane_u64(res64, 1);
-
-  res16 = vpaddlq_u8(ab_);
-  res32 = vpaddlq_u16(res16);
-  res64 = vpaddlq_u32(res32);
-  sum += vgetq_lane_u64(res64, 0) + vgetq_lane_u64(res64, 1);
-  //sum += ab[0] + ab[1] + ab[2] + ab[3] + ab[4] + ab[5] + ab[6] + ab[7] + ab[8] + ab[9] + ab[10] + ab[11] + ab[12] + ab[13] + ab[14] + ab[15];
-  //sum += ab_[0] + ab_[1] + ab_[2] + ab_[3] + ab_[4] + ab_[5] + ab_[6] + ab_[7] + ab_[8] + ab_[9] + ab_[10] + ab_[11] + ab_[12] + ab_[13] + ab_[14] + ab_[15];
-#endif
+  auto res32 = vpaddlq_u16(abd16);
+  auto res64 = vpaddlq_u32(res32);
+  return vgetq_lane_u64(res64, 0) + vgetq_lane_u64(res64, 1);
 }
 #endif
 
 inline int dist(cv::Mat const& a, cv::Mat const& b, int ax, int ay, int bx, int by, int cutoff=INT_MAX)
 {
 #if SSE
-   __m128i ab16{};
-  {
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay++, ax), b.ptr(by++, bx), ab16);
-    dist_sse(a.ptr(ay, ax), b.ptr(by, bx), ab16);
-  }
-  uint16_t ab16_[8];
-  _mm_storel_epi64((__m128i*)ab16_, ab16);
-  return ab16[0] + ab16[1];
+  return dist_sse(a.ptr(ay, ax), b.ptr(by, bx), a.ptr(ay + 1, ax) - a.ptr(ay, ax));
 #elif NEON
-  uint32_t sum{};
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay++, ax), b.ptr(by++, bx), sum);
-  dist_neon(a.ptr(ay, ax),   b.ptr(by, bx),   sum);
-  return sum;
+  return dist_neon(a.ptr(ay, ax), b.ptr(by, bx), a.cols * 4);
 #else
    auto ans{0};
    for (auto dy = 0; dy < 8; dy++)
    {
       for (auto dx = 0; dx < 8; dx++)
       {
-#if RGB24
-         auto const& ac = a.at<cv::Vec3b>(ay + dy, ax + dx);
-         auto const& bc = b.at<cv::Vec3b>(by + dy, bx + dx);
-#else
          auto const& ac = a.at<cv::Vec4b>(ay + dy, ax + dx);
          auto const& bc = b.at<cv::Vec4b>(by + dy, bx + dx);
-#endif
          auto const db = std::abs(ac[0] - bc[0]);
          auto const dg = std::abs(ac[1] - bc[1]);
          auto const dr = std::abs(ac[2] - bc[2]);

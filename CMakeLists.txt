@@ -3,8 +3,11 @@ project(patchmatch)
 
 set(CMAKE_CXX_STANDARD 14)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ffast-math")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fast-math -msse2 -msse")
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ffast-math -msse2 -msse")
+endif()
 
 set(patchmatch_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -13,14 +16,12 @@ file(GLOB_RECURSE patchmatch_PUBLIC_INCLUDES ${patchmatch_PUBLIC_INCLUDE_DIR}/pa
 if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
    add_definitions(
            -DNEON=1
-           -DSSE=0
-           -DRGB24=0)
+           -DSSE=0)
 else()
    find_package(OpenCV REQUIRED)
    add_definitions(
            -DNEON=0
-           -DSSE=1
-           -DRGB24=0)
+           -DSSE=1)
 endif()
 
 include_directories(
