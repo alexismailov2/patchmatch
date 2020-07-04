@@ -256,7 +256,7 @@ auto PatchMatch::Progress::getTimeLeftInSeconds() const -> uint32_t
 
 auto PatchMatch::Progress::getPercent() const -> float
 {
-  auto const progress = 100.0f * static_cast<float>(currentScale) / countScales;
+  auto const progress = 100.0f * (static_cast<float>(currentScale) / countScales);
   return progress;
 }
 
