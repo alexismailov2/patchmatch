@@ -28,7 +28,7 @@ include_directories(
    ${LIBRARY_INSTALL_DESTINATION}/include
    include)
 
-file(GLOB patchmatch_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)
+file(GLOB_RECURSE patchmatch_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)
 
 add_library(${PROJECT_NAME}
    STATIC

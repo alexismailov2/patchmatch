@@ -6,6 +6,8 @@
 
 #define DEBUG
 #include "../src/debug.hpp"
+#include "../src/new/nnf.h"
+#include "../src/new/inpaint.h"
 
 bool drawing = false;
 bool run = false;
@@ -20,7 +22,7 @@ void draw_circle(int event, int x, int y, int flags, void* userdata)
 
       case cv::EVENT_MOUSEMOVE:
          if (drawing) {
-            cv::circle(mask, cv::Point{x, y}, 100, cv::Scalar{255, 255, 255}, -1);
+            cv::circle(mask, cv::Point{x, y}, 20, cv::Scalar{255, 255, 255}, -1);
          }
          break;
 
@@ -37,7 +39,7 @@ void draw_circle(int event, int x, int y, int flags, void* userdata)
 #define SIMPLE_MODE 0
 int main(int argc, char* argv[])
 {
-  cv::Mat input = cv::imread("data/IMG_9454.jpg", cv::IMREAD_COLOR);
+  cv::Mat input = cv::imread(argv[1], cv::IMREAD_COLOR);
   cv::cvtColor(input, input, cv::COLOR_BGR2BGRA);
 #if SIMPLE_MODE
   cv::Mat mask = cv::imread("data/IMG_9464.png", cv::IMREAD_COLOR);
@@ -73,6 +75,7 @@ int main(int argc, char* argv[])
       {
          run = false;
          cv::imwrite("patch-5_mask.png", mask);
+#if 1
          auto config = pm::PatchMatch::Config();
          config.Original(input)
                .Mask(mask)
@@ -88,6 +91,11 @@ int main(int argc, char* argv[])
                });
          cv::Mat completedImage = pm::PatchMatch(config).ImageComplete();
          showImage("Progress", completedImage);
+#else
+//        auto metric = PatchSSDDistanceMetric(3);
+//        auto result = Inpainting(input, mask, &metric).run(true, true);
+//        showImage("Progress", result);
+#endif
       }
    }
 #endif

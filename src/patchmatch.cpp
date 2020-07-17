@@ -3,6 +3,8 @@
 #include "TimeStamp.hpp"
 #include "dist.hpp"
 #include "debug.hpp"
+#include "new/nnf.h"
+#include "new/inpaint.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -311,7 +313,8 @@ auto PatchMatch::ImageComplete() -> cv::Mat
 auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
 {
   TAKEN_TIME_US();
-  Progress progress{config._imageCompletionSteps, config._possibleScales};
+  //Progress progress{config._imageCompletionSteps, config._possibleScales};
+#if 0
   double scale = pow(2, -config._possibleScales);
   // Resize image to starting scale
   cv::Mat resize_img;
@@ -450,6 +453,16 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
     }
   }
   return resize_img.clone();
+#else
+  auto metric = PatchSSDDistanceMetric(3);
+  cv::Mat result;
+  Inpainting(config._original, config._mask, &metric).run(true, [&](cv::Mat const& progressImg, Progress const& progress) -> bool {
+    result = progressImg;
+    config._progressCb(progressImg, progress);
+    return true;
+  });
+  return result;
+#endif
 }
 
 } /// end namespace pm
