@@ -22,7 +22,7 @@ void draw_circle(int event, int x, int y, int flags, void* userdata)
 
       case cv::EVENT_MOUSEMOVE:
          if (drawing) {
-            cv::circle(mask, cv::Point{x, y}, 20, cv::Scalar{255, 255, 255}, -1);
+            cv::circle(mask, cv::Point{x, y}, 100, cv::Scalar{255, 255, 255}, -1);
          }
          break;
 

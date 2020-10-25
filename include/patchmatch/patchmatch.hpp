@@ -59,6 +59,13 @@ namespace pm {
             auto Mask(cv::Mat mask) -> Config &;
 
             /**
+             * Set mask for globally masked some regions of patch matching search.
+             * @param globalMask mask image which will not be used for search patch.
+             * @return self.
+             */
+            auto GlobalMask(cv::Mat globalMask) -> Config &;
+
+            /**
              * Set steps which will be used during image completion algorithm for each scale.
              * @param imageCompletionSteps image completion steps for each scale.
              * @return self.
@@ -82,6 +89,7 @@ namespace pm {
         private:
             cv::Mat _original{};
             cv::Mat _mask{};
+            cv::Mat _globalMask{};
             uint8_t _patchMatchingSteps{5};
             uint8_t _imageCompletionSteps{5};
             uint8_t _possibleScales{};

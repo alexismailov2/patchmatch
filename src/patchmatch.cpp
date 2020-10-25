@@ -281,6 +281,12 @@ auto PatchMatch::Config::Mask(cv::Mat mask) -> Config&
   return *this;
 }
 
+auto PatchMatch::Config::GlobalMask(cv::Mat globalMask) -> Config &
+{
+   _globalMask = std::move(globalMask);
+   return *this;
+}
+
 auto PatchMatch::Config::ImageCompletionSteps(uint8_t imageCompletionSteps) -> Config&
 {
   _imageCompletionSteps = imageCompletionSteps;
@@ -456,7 +462,7 @@ auto PatchMatch::imageComplete(Config const& config) -> cv::Mat
 #else
   auto metric = PatchSSDDistanceMetric(3);
   cv::Mat result;
-  Inpainting(config._original, config._mask, &metric).run(true, [&](cv::Mat const& progressImg, Progress const& progress) -> bool {
+  Inpainting(config._original, config._mask, config._globalMask, &metric).run(true, [&](cv::Mat const& progressImg, Progress const& progress) -> bool {
     result = progressImg;
     config._progressCb(progressImg, progress);
     return true;
